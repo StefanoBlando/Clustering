@@ -163,8 +163,6 @@ GNU Affero General Public License v3.0 License - see LICENSE file for details
 
 **Author:** Stefano Blando  
 **Institution:** University of Rome Tor Vergata  
-**Email:** [email]  
-**LinkedIn:** [profile]
 
 ## Acknowledgments
 
@@ -174,8 +172,8 @@ GNU Affero General Public License v3.0 License - see LICENSE file for details
 
 ---
 
-**🔬 Methodological Innovation:** First comprehensive multi-algorithm validation in sustainability behavior research
+**🔬 Methodological Innovation:** Comprehensive multi-algorithm validation in sustainability behavior research
 
-**📈 Practical Impact:** Evidence-based framework for demographic-adapted sustainability marketing
+**📈 Practical Impact:** Evidence-based framework for demographic-adapted sustainability analysis
 
 **🌱 Environmental Relevance:** Insights for accelerating sustainable behavior adoption at scale
