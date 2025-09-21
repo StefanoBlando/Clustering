@@ -1,0 +1,42 @@
+# Core Data Science Libraries
+pandas>=2.0.3
+numpy>=1.24.3
+scipy>=1.11.1
+
+# Machine Learning
+scikit-learn>=1.3.0
+factor-analyzer>=0.4.1
+
+# Multiple Correspondence Analysis
+prince>=0.7.1
+
+# Visualization
+matplotlib>=3.7.2
+seaborn>=0.12.2
+plotly>=5.15.0
+
+# Statistical Analysis
+statsmodels>=0.14.0
+pingouin>=0.5.3
+
+# Data Loading
+openpyxl>=3.1.2
+xlrd>=2.0.1
+
+# Jupyter Notebooks
+jupyter>=1.0.0
+ipykernel>=6.0.0
+nbformat>=5.0.0
+
+# Progress Bars
+tqdm>=4.65.0
+
+# Fuzzy Clustering
+fuzzy-c-means>=1.7.0
+
+# Network Analysis (for SOM)
+networkx>=3.1
+
+# Utility
+requests>=2.31.0
+python-dateutil>=2.8.2
