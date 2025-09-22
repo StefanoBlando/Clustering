@@ -1,0 +1,158 @@
+"""
+Validation metrics and statistical tests extracted from validation modules
+"""
+
+import numpy as np
+import pandas as pd
+from sklearn.metrics import silhouette_score, adjusted_rand_score, calinski_harabasz_score
+from sklearn.utils import resample
+from scipy import stats
+from scipy.stats import f_oneway
+
+def calculate_clustering_metrics(X, labels):
+    """
+    Calcola metriche clustering standard
+    Estratto da vari moduli validation
+    """
+    n_clusters = len(np.unique(labels))
+    
+    if n_clusters > 1:
+        silhouette = silhouette_score(X, labels)
+        calinski_harabasz = calinski_harabasz_score(X, labels)
+    else:
+        silhouette = 0.0
+        calinski_harabasz = 0.0
+    
+    # Davies-Bouldin (se disponibile)
+    try:
+        from sklearn.metrics import davies_bouldin_score
+        davies_bouldin = davies_bouldin_score(X, labels) if n_clusters > 1 else 0.0
+    except ImportError:
+        davies_bouldin = None
+    
+    return {
+        'silhouette': silhouette,
+        'calinski_harabasz': calinski_harabasz,
+        'davies_bouldin': davies_bouldin,
+        'n_clusters': n_clusters
+    }
+
+def bootstrap_stability_analysis(X, clusterer, n_bootstrap=100, random_state=42):
+    """
+    Bootstrap stability analysis
+    Estratto da MODULO BOOTSTRAP VALIDAZIONE
+    """
+    # Labels originali
+    original_labels = clusterer.fit_predict(X)
+    
+    bootstrap_aris = []
+    np.random.seed(random_state)
+    
+    for i in range(n_bootstrap):
+        try:
+            # Bootstrap sample
+            X_boot = resample(X, random_state=i)
+            
+            # Fit clusterer su bootstrap sample
+            labels_boot = clusterer.fit_predict(X_boot)
+            
+            # ARI con originale (usando lunghezza minima)
+            min_len = min(len(original_labels), len(labels_boot))
+            ari = adjusted_rand_score(original_labels[:min_len], labels_boot[:min_len])
+            bootstrap_aris.append(ari)
+            
+        except Exception as e:
+            continue
+    
+    if bootstrap_aris:
+        mean_ari = np.mean(bootstrap_aris)
+        std_ari = np.std(bootstrap_aris)
+        ci_lower = np.percentile(bootstrap_aris, 2.5)
+        ci_upper = np.percentile(bootstrap_aris, 97.5)
+    else:
+        mean_ari = std_ari = ci_lower = ci_upper = 0.0
+    
+    return {
+        'bootstrap_aris': bootstrap_aris,
+        'mean_ari': mean_ari,
+        'std_ari': std_ari,
+        'ci_lower': ci_lower,
+        'ci_upper': ci_upper,
+        'n_successful': len(bootstrap_aris)
+    }
+
+def permutation_test_clustering(X, labels, n_permutations=1000, random_state=42):
+    """
+    Permutation test per clustering significance
+    Estratto da moduli validation
+    """
+    original_silhouette = silhouette_score(X, labels)
+    
+    permuted_scores = []
+    np.random.seed(random_state)
+    
+    for i in range(n_permutations):
+        # Permuta labels
+        permuted_labels = np.random.permutation(labels)
+        
+        try:
+            perm_score = silhouette_score(X, permuted_labels)
+            permuted_scores.append(perm_score)
+        except:
+            continue
+    
+    if permuted_scores:
+        p_value = np.mean(np.array(permuted_scores) >= original_silhouette)
+        z_score = (original_silhouette - np.mean(permuted_scores)) / np.std(permuted_scores)
+    else:
+        p_value = 1.0
+        z_score = 0.0
+    
+    return {
+        'original_silhouette': original_silhouette,
+        'permuted_scores': permuted_scores,
+        'p_value': p_value,
+        'z_score': z_score,
+        'n_permutations': len(permuted_scores)
+    }
+
+def anova_cluster_validation(df, labels, variables):
+    """
+    ANOVA validation per variabili discriminanti
+    Estratto da MODULO 1 STEP 9
+    """
+    significant_vars = []
+    anova_results = []
+    
+    for var in variables:
+        if var in df.columns:
+            try:
+                # Gruppi per cluster
+                groups = [df[df.index.isin(np.where(labels == i)[0])][var].dropna() 
+                         for i in np.unique(labels)]
+                
+                # Rimuovi gruppi vuoti
+                groups = [g for g in groups if len(g) > 0]
+                
+                if len(groups) >= 2:
+                    f_stat, p_value = f_oneway(*groups)
+                    
+                    anova_results.append({
+                        'variable': var,
+                        'f_statistic': f_stat,
+                        'p_value': p_value,
+                        'significant': p_value < 0.05
+                    })
+                    
+                    if p_value < 0.05:
+                        significant_vars.append(var)
+                        
+            except Exception as e:
+                continue
+    
+    return {
+        'significant_variables': significant_vars,
+        'anova_results': anova_results,
+        'n_significant': len(significant_vars),
+        'total_tested': len(variables)
+    }
