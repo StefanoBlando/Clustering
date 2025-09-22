@@ -2,50 +2,73 @@
 
 ## Overview
 
-This repository contains a comprehensive multi-algorithm clustering analysis of environmental sustainability behaviors among 151 Italian consumers. The study systematically implements 15 different clustering methodologies across 8 algorithmic families to identify robust patterns in consumer environmental segmentation.
+Comprehensive multi-algorithm clustering analysis of environmental sustainability behaviors among 151 Italian consumers. The study systematically implements 15 different clustering methodologies across 8 algorithmic families to identify robust patterns in consumer environmental segmentation.
 
 ## Key Findings
 
-**🏆 Best Algorithm:** Hierarchical clustering with average linkage (Silhouette = 0.606)
+**Best Algorithm:** Hierarchical clustering with average linkage (Silhouette = 0.606)
 
-**📊 Main Discovery:** The "Sustainability Paradox" - robust demographic segmentation coexists with complete attitudinal homogeneity
+**Main Discovery:** The "Sustainability Paradox" - robust demographic segmentation coexists with complete attitudinal homogeneity
 
-**👥 Three Validated Segments:**
+**Three Validated Segments:**
 - **Professional Educated Males** (36.4%): Resource-rich efficiency seekers
 - **Young Students** (27.8%): Future-oriented innovation adopters  
 - **Mature Educated Women** (35.8%): Practical family-oriented adopters
 
-**💰 Universal Finding:** Economic barriers dominate across all segments (67.5% report cost concerns)
+**Universal Finding:** Economic barriers dominate across all segments (67.5% report cost concerns)
 
-## Dataset
-
-- **Sample:** 151 Italian consumers
-- **Variables:** 29 survey items (demographics + environmental attitudes/behaviors)
-- **Geographic:** Concentrated in Central Italy
-- **Bias:** Over-representation of educated, urban, younger populations
-
-## Methodology
-
-### 8 Algorithmic Families Tested
-1. **Partitional:** K-Means, K-Means on MCA coordinates
-2. **Hierarchical:** Ward, Average, Complete linkage
-3. **Density-based:** DBSCAN
-4. **Spectral:** RBF kernel, k-NN affinity
-5. **Probabilistic:** Gaussian Mixture Models, Bayesian GMM
-6. **Neural:** Self-Organizing Maps
-7. **Fuzzy:** Fuzzy C-Means
-8. **Ensemble:** Consensus clustering
-
-### Validation Framework
-- Bootstrap stability analysis (100 replications)
-- Permutation testing (1000 permutations)
-- Cross-methodological concordance
-- Survey-specific validation (measurement invariance, social desirability bias)
+## Repository Structure
+sustainability-clustering-analysis/
+├── README.md
+├── LICENSE
+├── requirements.txt
+├── environment.yml
+├── .gitignore
+├── data/
+│   ├── raw/
+│   │   └── Questionario_Sostenibilita_1_1.xlsx
+│   └── processed/
+│       └── (generated during analysis)
+├── notebooks/
+│   ├── 01_preprocessing_base.ipynb
+│   ├── 02_hierarchical_clustering.ipynb
+│   ├── 03_mca_analysis.ipynb
+│   ├── 04_lca_analysis.ipynb
+│   ├── 05_factor_analysis.ipynb
+│   ├── 06_ensemble_methods.ipynb
+│   ├── 07_business_interpretation.ipynb
+│   └── 08_advanced_algorithms.ipynb
+├── src/
+│   ├── init.py
+│   ├── data_loader.py
+│   ├── feature_engineering.py
+│   ├── hierarchical.py
+│   ├── mca.py
+│   ├── factor_analysis.py
+│   ├── som.py
+│   ├── fuzzy.py
+│   ├── gaussian_mixture.py
+│   ├── advanced_algorithms.py
+│   ├── ensemble_methods.py
+│   ├── business_interpretation.py
+│   ├── plots.py
+│   ├── business_plots.py
+│   └── validation/
+│       ├── init.py
+│       ├── metrics.py
+│       └── statistical_tests.py
+├── scripts/
+│   ├── run_preprocessing.py
+│   ├── run_clustering.py
+│   └── generate_report.py
+└── tests/
+├── init.py
+├── test_preprocessing.py
+└── test_clustering.py
 
 ## Quick Start
 
 ### Installation
-
 ```bash
 # Clone repository
 git clone https://github.com/[username]/sustainability-clustering-analysis.git
@@ -57,123 +80,128 @@ conda activate sustainability-clustering
 
 # Or use pip
 pip install -r requirements.txt
-```
+Data Setup
 
-### Data Setup
+Place Questionario_Sostenibilita_1_1.xlsx in data/raw/
+Run preprocessing: python scripts/run_preprocessing.py
+Execute analysis: python scripts/run_clustering.py
 
-1. Place `Questionario_Sostenibilita_1_1.xlsx` in `data/raw/`
-2. Run preprocessing: `python scripts/run_preprocessing.py`
-3. Execute analysis: `python scripts/run_clustering.py`
+Core Analysis
+python# Load and preprocess data
+from src.data_loader import load_sustainability_dataset, preprocess_demographics
+from src.hierarchical import perform_hierarchical_clustering
 
-### Core Analysis
+# Load dataset
+df = load_sustainability_dataset('data/raw/Questionario_Sostenibilita_1_1.xlsx')
+df_processed = preprocess_demographics(df)
 
-```python
-# Run complete analysis pipeline
-from src.clustering.ensemble import run_complete_analysis
+# Run best performing algorithm
+results = perform_hierarchical_clustering(X_scaled, method='average', k_range=range(2, 6))
+Methodology
+15 Algorithms Across 8 Families
 
-results = run_complete_analysis(
-    data_path='data/raw/Questionario_Sostenibilita_1_1.xlsx',
-    output_dir='results/'
-)
+Partitional: K-Means, K-Means on MCA coordinates
+Hierarchical: Ward, Average, Complete linkage
+Density-based: DBSCAN with parameter optimization
+Spectral: RBF kernel, k-NN affinity, polynomial
+Probabilistic: Gaussian Mixture Models, Bayesian GMM
+Neural: Self-Organizing Maps
+Fuzzy: Fuzzy C-Means with membership analysis
+Ensemble: Consensus clustering, weighted voting
 
-# Best performing method
-print(f"Best algorithm: {results['best_algorithm']}")
-print(f"Silhouette score: {results['best_silhouette']:.3f}")
-```
+Validation Framework
 
-## Repository Structure
+Bootstrap stability analysis (100 replications)
+Permutation testing (1000 permutations)
+Cross-methodological concordance
+Survey-specific validation (measurement invariance, IRT analysis)
 
-```
-├── notebooks/           # Jupyter notebooks for each analysis module
-├── src/                # Core analysis code
-├── data/               # Raw, processed, and result datasets
-├── figures/            # Generated visualizations
-├── reports/            # Analysis reports and findings
-└── scripts/            # Execution scripts
-```
+Main Results
+Algorithm Performance Ranking
+RankAlgorithmSilhouetteStability (ARI)Interpretation1Hierarchical Average0.6060.847Exceptional2Ensemble Consensus0.4910.712High3MCA K-Means0.4050.673High4GMM Tied0.4220.634Medium-High5Spectral RBF0.4210.598Medium
+The Sustainability Paradox
+Demographic Dominance: 73.4% of between-cluster variance explained by demographics
+Attitudinal Homogeneity: F = 0.83, p = 0.694 (no significant differences)
+Universal Economic Barriers: 67.5% report cost concerns across all segments
+Business Applications
+Strategic Recommendations
 
-## Key Notebooks
+Demographic-adapted targeting with unified sustainability messaging
+Universal economic barrier mitigation through structural interventions
+Progressive engagement frameworks acknowledging behavioral ambiguity
 
-1. **01_preprocessing_base.ipynb** - Data cleaning and feature engineering
-2. **03_hierarchical_clustering.ipynb** - Best performing method
-3. **04_mca_analysis.ipynb** - Multiple Correspondence Analysis
-4. **06_ensemble_methods.ipynb** - Multi-algorithm consensus
-5. **99_complete_analysis.ipynb** - Full pipeline and business insights
+Policy Implications
 
-## Main Results
+Economic incentives more effective than attitude change campaigns
+Demographic-specific implementation of sustainability programs
+Focus on structural constraints rather than individual preferences
 
-### Algorithm Performance Ranking
+Usage Examples
+Run Complete Analysis
+python# Execute full pipeline
+python scripts/run_clustering.py --method all --output results/
 
-| Rank | Algorithm | Silhouette | Stability (ARI) | Interpretation |
-|------|-----------|------------|-----------------|----------------|
-| 1 | Hierarchical Average | 0.606 | 0.847 | Exceptional |
-| 2 | Ensemble Consensus | 0.491 | 0.712 | High |
-| 3 | MCA K-Means | 0.405 | 0.673 | High |
-| 4 | GMM Tied | 0.422 | 0.634 | Medium-High |
-| 5 | Spectral RBF | 0.421 | 0.598 | Medium |
+# Generate business insights
+python scripts/generate_report.py --format executive
+Custom Analysis
+pythonfrom src.ensemble_methods import consensus_clustering
+from src.advanced_algorithms import spectral_clustering_comprehensive
 
-### Demographic vs Attitudinal Variance
+# Ensemble analysis
+algorithms = {'kmeans': KMeans(n_clusters=3), 'hierarchical': AgglomerativeClustering(n_clusters=3)}
+consensus_result = consensus_clustering(X, algorithms, n_runs=20)
 
-- **Demographic variables:** 73.4% of between-cluster variance
-- **Attitudinal variables:** 1.9% of between-cluster variance
-- **Statistical test:** F = 0.83, p = 0.694 (no significant attitudinal differences)
+# Advanced algorithms
+spectral_results = spectral_clustering_comprehensive(X, affinity_types=['rbf', 'nearest_neighbors'])
+Dataset Information
 
-### Business Implications
+Sample: 151 Italian consumers
+Variables: 29 survey items (demographics + environmental attitudes/behaviors)
+Geographic: Concentrated in Central Italy (65.6%)
+Limitations: Educational bias (57.6% university vs 24% national average)
 
-**Strategic Recommendation:** Shift from values-based to demographic-adapted segmentation with unified sustainability messaging
+Dependencies
 
-**Policy Insight:** Universal economic barriers suggest structural interventions (subsidies, tax incentives) more effective than attitude change campaigns
+Python 3.9+
+scikit-learn 1.3.0
+pandas 2.0.3
+numpy 1.24.3
+matplotlib 3.7.2
+seaborn 0.12.2
+factor-analyzer 0.4.1
+prince 0.7.1 (MCA)
 
-## Research Applications
-
-This methodology is transferable to:
-- Health behavior research
-- Technology adoption studies  
-- Financial decision-making analysis
-- Social behavior segmentation
-- Any domain with attitude-behavior gaps
-
-## Citation
-
-```bibtex
-@thesis{blando2024sustainability,
+License
+This project is licensed under the GNU General Public License v3.0 - see the LICENSE file for details.
+Citation
+bibtex@thesis{blando2024sustainability,
   title={Multi-Algorithm Sustainability Clustering Analysis: A Comprehensive Empirical Investigation of Consumer Environmental Behavior Segmentation},
   author={Blando, Stefano},
   year={2024},
   institution={University of Rome Tor Vergata},
   type={Master's Thesis}
 }
-```
+Contributing
 
-## Dependencies
+Fork the repository
+Create feature branch (git checkout -b feature/algorithm-name)
+Commit changes (git commit -am 'Add new clustering algorithm')
+Push to branch (git push origin feature/algorithm-name)
+Create Pull Request
 
-- Python 3.9+
-- scikit-learn 1.3.0
-- pandas 2.0.3
-- numpy 1.24.3
-- matplotlib 3.7.2
-- seaborn 0.12.2
-- scipy 1.11.1
+Contact
+Author: Stefano Blando
+Institution: University of Rome Tor Vergata
+Supervisor: Prof. Furio Camillo
+Acknowledgments
 
-## License
+University of Rome Tor Vergata, Department of Economics and Finance
+Survey participants (151 Italian consumers)
+Open-source Python ecosystem (scikit-learn, pandas, matplotlib)
 
-GNU Affero General Public License v3.0 License - see LICENSE file for details
 
-## Contact
+Methodological Innovation: First comprehensive multi-algorithm validation in sustainability behavior research
+Practical Impact: Evidence-based framework for demographic-adapted sustainability marketing
+Environmental Relevance: Insights for accelerating sustainable behavior adoption at scale
 
-**Author:** Stefano Blando  
-**Institution:** University of Rome Tor Vergata  
-
-## Acknowledgments
-
-- Prof. Furio Camillo (Supervisor)
-- University of Rome Tor Vergata, Department of Economics and Finance
-- Survey participants (151 Italian consumers)
-
----
-
-**🔬 Methodological Innovation:** Comprehensive multi-algorithm validation in sustainability behavior research
-
-**📈 Practical Impact:** Evidence-based framework for demographic-adapted sustainability analysis
-
-**🌱 Environmental Relevance:** Insights for accelerating sustainable behavior adoption at scale
+Questo README riflette la tua struttura flat in `src/` e include la GNU License. Vuoi che aggiunga qualche sezione specifica o modifichi qualcosa?
