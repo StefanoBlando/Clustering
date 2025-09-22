@@ -1,0 +1,199 @@
+# =============================================================================
+# MODULO CROSS-DATASET 4: SPECTRAL CLUSTERING SU TUTTI I DATASET
+# Graph-based clustering usando eigenvalues della similarity matrix
+# =============================================================================
+
+import pandas as pd
+import numpy as np
+from sklearn.cluster import SpectralClustering
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import silhouette_score, calinski_harabasz_score
+from sklearn.neighbors import kneighbors_graph
+import warnings
+warnings.filterwarnings('ignore')
+
+print("=== MODULO CROSS-DATASET 4: SPECTRAL CLUSTERING ===")
+
+# Parametri Spectral Clustering
+k_range = range(2, 8)
+affinity_types = ['rbf', 'nearest_neighbors', 'polynomial']
+gamma_values = [0.1, 1.0, 'scale', 'auto']  # Per rbf
+n_neighbors_values = [5, 10, 15]  # Per nearest_neighbors
+
+spectral_results = []
+
+print(f"Spectral Clustering parameters:")
+print(f"K range: {list(k_range)}")
+print(f"Affinity types: {affinity_types}")
+print(f"Gamma values (rbf): {gamma_values}")
+print(f"N neighbors (knn): {n_neighbors_values}")
+
+for dataset_name, data in datasets.items():
+    print(f"\nTesting {dataset_name}...")
+    
+    # Standardizzazione
+    scaler = StandardScaler()
+    data_scaled = scaler.fit_transform(data)
+    
+    for affinity in affinity_types:
+        print(f"  Affinity: {affinity}")
+        
+        if affinity == 'rbf':
+            # Test diversi gamma per RBF
+            for gamma in gamma_values:
+                for k in k_range:
+                    try:
+                        spectral = SpectralClustering(
+                            n_clusters=k,
+                            affinity=affinity,
+                            gamma=gamma,
+                            random_state=42,
+                            n_init=10
+                        )
+                        
+                        labels = spectral.fit_predict(data_scaled)
+                        n_unique = len(np.unique(labels))
+                        
+                        if n_unique == k:
+                            silhouette = silhouette_score(data_scaled, labels)
+                            calinski_harabasz = calinski_harabasz_score(data_scaled, labels)
+                            
+                            spectral_results.append({
+                                'Dataset': dataset_name,
+                                'Affinity': affinity,
+                                'Gamma': gamma,
+                                'N_neighbors': None,
+                                'K': k,
+                                'Silhouette': silhouette,
+                                'Calinski_Harabasz': calinski_harabasz,
+                                'N_Features': data.shape[1]
+                            })
+                            
+                            print(f"    K={k}, gamma={gamma}: Sil={silhouette:.3f}, CH={calinski_harabasz:.1f}")
+                        else:
+                            print(f"    K={k}, gamma={gamma}: Solo {n_unique} cluster effettivi")
+                            
+                    except Exception as e:
+                        print(f"    K={k}, gamma={gamma}: Errore - {str(e)[:50]}")
+        
+        elif affinity == 'nearest_neighbors':
+            # Test diversi n_neighbors per KNN
+            for n_neighbors in n_neighbors_values:
+                for k in k_range:
+                    try:
+                        spectral = SpectralClustering(
+                            n_clusters=k,
+                            affinity=affinity,
+                            n_neighbors=n_neighbors,
+                            random_state=42,
+                            n_init=10
+                        )
+                        
+                        labels = spectral.fit_predict(data_scaled)
+                        n_unique = len(np.unique(labels))
+                        
+                        if n_unique == k:
+                            silhouette = silhouette_score(data_scaled, labels)
+                            calinski_harabasz = calinski_harabasz_score(data_scaled, labels)
+                            
+                            spectral_results.append({
+                                'Dataset': dataset_name,
+                                'Affinity': affinity,
+                                'Gamma': None,
+                                'N_neighbors': n_neighbors,
+                                'K': k,
+                                'Silhouette': silhouette,
+                                'Calinski_Harabasz': calinski_harabasz,
+                                'N_Features': data.shape[1]
+                            })
+                            
+                            print(f"    K={k}, n_neighbors={n_neighbors}: Sil={silhouette:.3f}, CH={calinski_harabasz:.1f}")
+                        else:
+                            print(f"    K={k}, n_neighbors={n_neighbors}: Solo {n_unique} cluster effettivi")
+                            
+                    except Exception as e:
+                        print(f"    K={k}, n_neighbors={n_neighbors}: Errore - {str(e)[:50]}")
+        
+        elif affinity == 'polynomial':
+            # Polynomial affinity (parametri default)
+            for k in k_range:
+                try:
+                    spectral = SpectralClustering(
+                        n_clusters=k,
+                        affinity=affinity,
+                        random_state=42,
+                        n_init=10
+                    )
+                    
+                    labels = spectral.fit_predict(data_scaled)
+                    n_unique = len(np.unique(labels))
+                    
+                    if n_unique == k:
+                        silhouette = silhouette_score(data_scaled, labels)
+                        calinski_harabasz = calinski_harabasz_score(data_scaled, labels)
+                        
+                        spectral_results.append({
+                            'Dataset': dataset_name,
+                            'Affinity': affinity,
+                            'Gamma': None,
+                            'N_neighbors': None,
+                            'K': k,
+                            'Silhouette': silhouette,
+                            'Calinski_Harabasz': calinski_harabasz,
+                            'N_Features': data.shape[1]
+                        })
+                        
+                        print(f"    K={k}: Sil={silhouette:.3f}, CH={calinski_harabasz:.1f}")
+                    else:
+                        print(f"    K={k}: Solo {n_unique} cluster effettivi")
+                        
+                except Exception as e:
+                    print(f"    K={k}: Errore - {str(e)[:50]}")
+
+spectral_df = pd.DataFrame(spectral_results)
+print(f"\nRisultati Spectral totali: {len(spectral_df)}")
+
+if len(spectral_df) > 0:
+    # Analisi risultati
+    print(f"\n=== Analisi Spectral Clustering Results ===")
+    
+    # Migliori per dataset
+    print("Migliori Silhouette per dataset:")
+    for dataset_name in datasets.keys():
+        dataset_results = spectral_df[spectral_df['Dataset'] == dataset_name]
+        if len(dataset_results) > 0:
+            best_row = dataset_results.loc[dataset_results['Silhouette'].idxmax()]
+            params = f"affinity={best_row['Affinity']}"
+            if best_row['Gamma'] is not None:
+                params += f", gamma={best_row['Gamma']}"
+            if best_row['N_neighbors'] is not None:
+                params += f", n_neighbors={best_row['N_neighbors']}"
+            
+            print(f"  {dataset_name}: K={best_row['K']}, {params}, Sil={best_row['Silhouette']:.3f}")
+        else:
+            print(f"  {dataset_name}: Nessun risultato valido")
+    
+    # Top 15 complessivo
+    print(f"\nTop 15 Spectral Clustering (tutti dataset/parametri):")
+    top_spectral = spectral_df.nlargest(15, 'Silhouette')
+    for _, row in top_spectral.iterrows():
+        params = row['Affinity']
+        if row['Gamma'] is not None:
+            params += f" γ={row['Gamma']}"
+        if row['N_neighbors'] is not None:
+            params += f" k={row['N_neighbors']}"
+        
+        print(f"  {row['Dataset']} {params} K={row['K']}: Sil={row['Silhouette']:.3f}")
+    
+    # Analisi per affinity type
+    print(f"\nAnalisi per Affinity Type:")
+    affinity_stats = spectral_df.groupby('Affinity')['Silhouette'].agg(['mean', 'max', 'std', 'count'])
+    for affinity, stats in affinity_stats.iterrows():
+        print(f"  {affinity}: mean={stats['mean']:.3f}, max={stats['max']:.3f}, "
+              f"std={stats['std']:.3f}, count={stats['count']}")
+
+else:
+    print("Spectral Clustering non ha prodotto risultati validi")
+    print("Possibili cause: parametri non appropriati o dataset troppo complessi")
+
+print("=== Procedo con Gaussian Mixture Models ===")
