@@ -1,0 +1,214 @@
+"""
+Advanced statistical tests extracted from validation modules
+"""
+
+import numpy as np
+import pandas as pd
+from scipy import stats
+from scipy.stats import chi2_contingency, pearsonr
+from sklearn.model_selection import cross_val_score
+
+def demographic_sensitivity_analysis(df, labels, demographic_vars):
+    """
+    Sensitivity analysis demografica
+    Estratto da MODULO ANALISI DI SENSIBILITÀ
+    """
+    from sklearn.metrics import adjusted_rand_score
+    
+    sensitivity_results = []
+    
+    # Test robustezza per sottogruppi demografici
+    for var in demographic_vars:
+        if var in df.columns:
+            unique_values = df[var].unique()
+            
+            for value in unique_values:
+                if pd.notna(value):
+                    # Sottogruppo
+                    mask = df[var] == value
+                    subgroup_size = mask.sum()
+                    
+                    if subgroup_size >= 20:  # Minimo per clustering
+                        subgroup_labels = labels[mask]
+                        
+                        # Verifica se clustering è significativo nel sottogruppo
+                        n_clusters_sub = len(np.unique(subgroup_labels))
+                        
+                        if n_clusters_sub > 1:
+                            # ARI con clustering totale (overlap samples)
+                            overlap_indices = np.where(mask)[0]
+                            if len(overlap_indices) > 0:
+                                ari_vs_total = adjusted_rand_score(
+                                    labels[overlap_indices], 
+                                    subgroup_labels
+                                )
+                                
+                                sensitivity_results.append({
+                                    'variable': var,
+                                    'value': value,
+                                    'subgroup_size': subgroup_size,
+                                    'n_clusters': n_clusters_sub,
+                                    'ari_vs_total': ari_vs_total
+                                })
+    
+    return sensitivity_results
+
+def item_response_theory_analysis(df_likert):
+    """
+    Item Response Theory analysis
+    Estratto da moduli validation IRT
+    """
+    try:
+        from factor_analyzer import FactorAnalyzer
+        from factor_analyzer.factor_analyzer import calculate_kmo
+        
+        # KMO test
+        kmo_all, kmo_model = calculate_kmo(df_likert)
+        
+        if kmo_model > 0.5:
+            # Factor analysis per IRT
+            fa = FactorAnalyzer(n_factors=3, rotation='varimax')
+            fa.fit(df_likert)
+            
+            loadings = fa.loadings_
+            communalities = fa.get_communalities()
+            
+            # Reliability per fattore
+            factor_reliabilities = {}
+            item_discriminations = {}
+            
+            for i in range(3):
+                factor_items = np.abs(loadings[:, i]) > 0.4
+                if factor_items.sum() > 2:
+                    factor_data = df_likert.iloc[:, factor_items]
+                    
+                    # Cronbach's alpha
+                    alpha = calculate_cronbach_alpha(factor_data)
+                    factor_reliabilities[f'Factor_{i+1}'] = alpha
+                    
+                    # Item discriminations
+                    discriminations = {}
+                    for j, item in enumerate(factor_data.columns):
+                        # Correlazione item-total
+                        item_total_corr = factor_data[item].corr(
+                            factor_data.drop(columns=[item]).mean(axis=1)
+                        )
+                        discriminations[item] = item_total_corr
+                    
+                    item_discriminations[f'Factor_{i+1}'] = discriminations
+            
+            return {
+                'kmo_model': kmo_model,
+                'factor_reliabilities': factor_reliabilities,
+                'item_discriminations': item_discriminations,
+                'communalities': communalities,
+                'is_valid': True
+            }
+        else:
+            return {'kmo_model': kmo_model, 'is_valid': False}
+            
+    except ImportError:
+        return {'error': 'factor_analyzer not available', 'is_valid': False}
+
+def calculate_cronbach_alpha(df):
+    """
+    Calcola Cronbach's alpha
+    Estratto da validation modules
+    """
+    # Numero items
+    k = len(df.columns)
+    
+    # Varianze item
+    item_variances = df.var(axis=0, ddof=1)
+    
+    # Varianza totale
+    total_variance = df.sum(axis=1).var(ddof=1)
+    
+    # Cronbach's alpha
+    alpha = (k / (k - 1)) * (1 - item_variances.sum() / total_variance)
+    
+    return alpha
+
+def measurement_invariance_test(df, labels, grouping_var):
+    """
+    Test di invarianza di misura
+    Estratto da moduli validation survey-specific
+    """
+    # Semplificato: confronto reliability tra gruppi
+    invariance_results = {}
+    
+    unique_groups = df[grouping_var].unique()
+    group_reliabilities = {}
+    
+    likert_vars = [col for col in df.columns if df[col].dtype in ['int64', 'float64'] 
+                   and df[col].min() >= 1 and df[col].max() <= 7]
+    
+    for group in unique_groups:
+        if pd.notna(group):
+            group_data = df[df[grouping_var] == group][likert_vars]
+            if len(group_data) > 10:
+                alpha = calculate_cronbach_alpha(group_data)
+                group_reliabilities[group] = alpha
+    
+    # Confronto reliability tra gruppi
+    if len(group_reliabilities) >= 2:
+        reliabilities = list(group_reliabilities.values())
+        max_diff = max(reliabilities) - min(reliabilities)
+        
+        # Interpretazione invarianza
+        if max_diff < 0.05:
+            invariance_level = "Strong"
+        elif max_diff < 0.10:
+            invariance_level = "Partial"  
+        else:
+            invariance_level = "Weak"
+    else:
+        invariance_level = "Cannot assess"
+        max_diff = np.nan
+    
+    return {
+        'group_reliabilities': group_reliabilities,
+        'max_reliability_diff': max_diff,
+        'invariance_level': invariance_level
+    }
+
+def social_desirability_bias_assessment(df, likert_vars):
+    """
+    Assessment bias desiderabilità sociale
+    Estratto da validation modules
+    """
+    # Analisi distribuzioni per ceiling/floor effects
+    ceiling_effects = []
+    floor_effects = []
+    skewness_values = []
+    
+    for var in likert_vars:
+        if var in df.columns:
+            values = df[var].dropna()
+            
+            # Ceiling effect (concentrazione su valori alti)
+            ceiling_pct = (values >= values.max() - 0.5).mean() * 100
+            ceiling_effects.append(ceiling_pct)
+            
+            # Floor effect (concentrazione su valori bassi) 
+            floor_pct = (values <= values.min() + 0.5).mean() * 100
+            floor_effects.append(floor_pct)
+            
+            # Skewness
+            skew = stats.skew(values)
+            skewness_values.append(skew)
+    
+    # Summary bias indicators
+    mean_ceiling = np.mean(ceiling_effects)
+    mean_skewness = np.mean(skewness_values)
+    negative_skew_pct = (np.array(skewness_values) < -0.5).mean() * 100
+    
+    return {
+        'mean_ceiling_effect': mean_ceiling,
+        'mean_skewness': mean_skewness,
+        'negative_skew_percentage': negative_skew_pct,
+        'ceiling_effects': ceiling_effects,
+        'skewness_values': skewness_values,
+        'bias_level': 'High' if mean_ceiling > 30 and negative_skew_pct > 60 else 
+                     'Medium' if mean_ceiling > 20 or negative_skew_pct > 40 else 'Low'
+    }
