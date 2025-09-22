@@ -1,0 +1,172 @@
+"""
+Fuzzy C-Means clustering functions extracted from notebook
+"""
+
+import numpy as np
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import silhouette_score
+
+class FuzzyCMeans:
+    """
+    Fuzzy C-Means implementation estratto da moduli fuzzy
+    """
+    
+    def __init__(self, n_clusters=3, m=2.0, max_iter=150, tol=1e-5, random_state=42):
+        self.n_clusters = n_clusters
+        self.m = m  # Fuzziness parameter
+        self.max_iter = max_iter
+        self.tol = tol
+        self.random_state = random_state
+        self.centers = None
+        self.membership_matrix = None
+        
+    def initialize_membership_matrix(self, n_samples):
+        """Inizializza matrice membership random"""
+        np.random.seed(self.random_state)
+        membership = np.random.random((n_samples, self.n_clusters))
+        # Normalizza per somma = 1
+        membership = membership / membership.sum(axis=1, keepdims=True)
+        return membership
+    
+    def update_centers(self, X, membership):
+        """Update cluster centers - estratto da implementation fuzzy"""
+        centers = np.zeros((self.n_clusters, X.shape[1]))
+        
+        for c in range(self.n_clusters):
+            # Weighted mean con membership elevata a m
+            weights = membership[:, c] ** self.m
+            if weights.sum() > 0:
+                centers[c] = (weights[:, np.newaxis] * X).sum(axis=0) / weights.sum()
+            else:
+                centers[c] = X[np.random.randint(0, X.shape[0])]
+        
+        return centers
+    
+    def update_membership_matrix(self, X, centers):
+        """Update membership matrix - estratto da implementation fuzzy"""
+        n_samples = X.shape[0]
+        membership = np.zeros((n_samples, self.n_clusters))
+        
+        for i in range(n_samples):
+            distances = np.array([np.linalg.norm(X[i] - center) for center in centers])
+            distances = np.maximum(distances, 1e-10)  # Evita divisione per zero
+            
+            for c in range(self.n_clusters):
+                denominator = 0
+                for j in range(self.n_clusters):
+                    denominator += (distances[c] / distances[j]) ** (2/(self.m-1))
+                
+                membership[i, c] = 1 / denominator if denominator > 0 else 1
+        
+        # Normalizza membership (safety check)
+        membership = membership / membership.sum(axis=1, keepdims=True)
+        
+        return membership
+    
+    def fit(self, X):
+        """Fit Fuzzy C-Means - estratto da moduli fuzzy"""
+        n_samples = X.shape[0]
+        
+        # Inizializzazione
+        membership = self.initialize_membership_matrix(n_samples)
+        
+        for iteration in range(self.max_iter):
+            membership_old = membership.copy()
+            
+            # Update centers
+            self.centers = self.update_centers(X, membership)
+            
+            # Update membership
+            membership = self.update_membership_matrix(X, self.centers)
+            
+            # Check convergenza
+            if np.max(np.abs(membership - membership_old)) < self.tol:
+                print(f"Convergenza raggiunta all'iterazione {iteration + 1}")
+                break
+            
+            if (iteration + 1) % 20 == 0:
+                print(f"  Iterazione {iteration + 1}/{self.max_iter}")
+        
+        self.membership_matrix = membership
+        return self
+    
+    def predict(self, X=None):
+        """Hard clustering: assegna ogni punto al cluster con membership massima"""
+        if X is not None:
+            # Per nuovi dati, calcola membership
+            membership = self.update_membership_matrix(X, self.centers)
+        else:
+            membership = self.membership_matrix
+            
+        return np.argmax(membership, axis=1)
+    
+    def get_membership_matrix(self):
+        """Ritorna matrice membership fuzzy"""
+        return self.membership_matrix
+
+def perform_fuzzy_clustering(X, n_clusters_range=range(2, 5), m=2.0):
+    """
+    Fuzzy clustering con diversi K
+    Estratto da moduli fuzzy
+    """
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+    
+    fuzzy_results = []
+    
+    for k in n_clusters_range:
+        print(f"Testing Fuzzy C-Means K={k}...")
+        
+        fcm = FuzzyCMeans(n_clusters=k, m=m, random_state=42)
+        fcm.fit(X_scaled)
+        
+        # Hard labels per metriche
+        hard_labels = fcm.predict()
+        membership_matrix = fcm.get_membership_matrix()
+        
+        # Analisi membership ambiguity
+        max_memberships = np.max(membership_matrix, axis=1)
+        mean_max_membership = np.mean(max_memberships)
+        fuzzy_samples = np.sum(max_memberships < 0.5)
+        fuzzy_percentage = fuzzy_samples / len(X_scaled) * 100
+        
+        # Silhouette sui hard labels
+        if len(np.unique(hard_labels)) > 1:
+            silhouette = silhouette_score(X_scaled, hard_labels)
+        else:
+            silhouette = 0.0
+        
+        print(f"  Membership media massima: {mean_max_membership:.3f}")
+        print(f"  Campioni fuzzy (<0.5): {fuzzy_samples}/{len(X_scaled)} ({fuzzy_percentage:.1f}%)")
+        print(f"  Silhouette: {silhouette:.3f}")
+        
+        fuzzy_results.append({
+            'k': k,
+            'silhouette': silhouette,
+            'fcm_model': fcm,
+            'hard_labels': hard_labels,
+            'membership_matrix': membership_matrix,
+            'mean_max_membership': mean_max_membership,
+            'fuzzy_percentage': fuzzy_percentage
+        })
+    
+    return fuzzy_results
+
+def analyze_fuzzy_ambiguity(membership_matrix):
+    """
+    Analizza ambiguità fuzzy
+    Estratto da moduli fuzzy analysis
+    """
+    max_memberships = np.max(membership_matrix, axis=1)
+    
+    analysis = {
+        'mean_max_membership': np.mean(max_memberships),
+        'std_max_membership': np.std(max_memberships),
+        'min_max_membership': np.min(max_memberships),
+        'samples_fuzzy_05': np.sum(max_memberships < 0.5),
+        'samples_fuzzy_07': np.sum(max_memberships < 0.7),
+        'percentage_fuzzy_05': np.sum(max_memberships < 0.5) / len(max_memberships) * 100,
+        'percentage_fuzzy_07': np.sum(max_memberships < 0.7) / len(max_memberships) * 100
+    }
+    
+    return analysis
